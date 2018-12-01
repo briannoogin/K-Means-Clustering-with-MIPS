@@ -97,17 +97,42 @@ DrawYAxis:
 	addi $a3, $a3, 256
 	bne $a3, $a2, DrawYAxis
 # go right to draw the x axis
-#subi $a3, $a3, 256
-#sub $a2, $a2, 256
 addi $a2, $a2, 256
 DrawXAxis:
 	sw $a1, ($a3)
 	addi $a3, $a3, 4
 	bne $a3, $a2, DrawXAxis
-	### Iterate ###
-	### K-means Cluster ##
-	
-	# exit the program 
+### Plot Points ###
+li $a0, 2
+li $a1, 2
+li $a2, 0
+jal drawPoint
+### Iterate ###
+# take the first two points as the centroids 
+### K-means Cluster ##
+# exit the program 
 exit:
 	li $v0, 10
 	syscall
+# input $a0: x coordinate, $a1: y coordinate, $a2: color of point
+# assumes that the coordinates are within the boundaries of the graph 
+# output: none
+drawPoint:
+	# convert coordinate to address
+	# recenter the coordinate relative to the origin
+	lw $t1, displayWidth
+	mul $t1, $t1, 4 # format pixels into address
+	mul $t1, $t1, 35 # number of pixels in the column
+	add $t1, $t1, $gp # add address of the coordinate to the address of the graph 
+	mul $t2, $a1, 256 # multiply y coordinate by 256 to get the location of the y address
+	sub $t1, $t1, $t2 # offset the address to correctly match the y coordinate
+	mul $t2, $a0, 4 # multiply x coordinate by 4 to get the location of the x address 
+	add $t1, $t1, $t2  # add to move point right 
+	# change address to specified color 
+	sw $a2,($t1)
+	jr $ra
+	 
+# input: $a0: x of first data point, $a1: y of first data point, $a2: x of second data point, $a3: y of second data point 
+# output: $v0: returns floating point and represents distance between two points
+calculateEuclideanDistance:
+	jr $ra
