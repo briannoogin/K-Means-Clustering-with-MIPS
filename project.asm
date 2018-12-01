@@ -30,34 +30,34 @@ colorVector: .space 100
 fileBuffer: .space 400
 .text
 main:
-	### Read in text data ###
-	# open file
-	li $v0, 13 
-	la $a0, dataFile
-	li $a1, 0
-	li $a2,0
-	syscall
-	move $t1, $v0 # save the file description
+### Read in text data ###
+# open file
+li $v0, 13 
+la $a0, dataFile
+li $a1, 0
+li $a2,0
+syscall
+move $t1, $v0 # save the file description
 	
-	# read file
-	li $v0, 14 
-	addi $a0, $t1, 0
-	la $a1, fileBuffer
-	li $a2, 400
-	syscall
+# read file
+li $v0, 14 
+addi $a0, $t1, 0
+la $a1, fileBuffer
+li $a2, 400
+syscall
 	
-	# close file
-	li $v0,16 
-	syscall
+# close file
+li $v0,16 
+syscall
 	
-	# output character
-	la $t1, fileBuffer # store address of the file buffer
-	la $t2, xVector # store address of 1st column of table
-	la $t3, yVector # store address of 2nd column of table
-	la $t4, colorVector # stores address of 3rd column of table
-	li $s1, 400
-	li $s2, 0 # store character count to stop the loop
-	lw $s3, black # store the color of black
+# output character
+la $t1, fileBuffer # store address of the file buffer
+la $t2, xVector # store address of 1st column of table
+la $t3, yVector # store address of 2nd column of table
+la $t4, colorVector # stores address of 3rd column of table
+li $s1, 400
+li $s2, 0 # store character count to stop the loop
+lw $s3, black # store the color of black
 	
 loopThroughBuffer:
 	addi $t5, $t1, 2 # store address of 2nd number
@@ -70,13 +70,14 @@ loopThroughBuffer:
 	addi $t1, $t1, 4 # increment buffer by three to move to new line
 	addi $s2, $s2, 4 # increment number of characters read
 	bne $s1, $s2, loopThroughBuffer
-	### Draw in graph ###
-	lw $a0, displayWidth
-	lw $a1, displayColor
-	mul $a2, $a0,$a0 # calculate total pixels
-	mul $a2, $a2, 4 # each pixel stores 4 bytes
-	add $a2, $a2, $gp # add to the $gp to mark the end
-	addi $a3, $gp, 0 # index
+	
+### Draw in graph ###
+lw $a0, displayWidth
+lw $a1, displayColor
+mul $a2, $a0,$a0 # calculate total pixels
+mul $a2, $a2, 4 # each pixel stores 4 bytes
+add $a2, $a2, $gp # add to the $gp to mark the end
+addi $a3, $gp, 0 # index
 	
 # makes the screen white
 FillScreen:
@@ -87,13 +88,22 @@ FillScreen:
 # draws the graph lines
 lw $a1, black # store the color black
 mul $a2,$a0, 4 # multiply the number of pixels by 4 to format the address
-mul $a2, $a2, 64 # find total length of a column
+mul $a2, $a2, 35 # find total length of a column
 add $a2, $a2, $gp # add length of column by the position of the graph
 move $a3, $gp # reset to index original position 
-DrawGraph: 
+# go down to draw the y axis
+DrawYAxis: 
 	sw $a1, ($a3)
 	addi $a3, $a3, 256
-	bne $a3, $a2, DrawGraph
+	bne $a3, $a2, DrawYAxis
+# go right to draw the x axis
+#subi $a3, $a3, 256
+#sub $a2, $a2, 256
+addi $a2, $a2, 256
+DrawXAxis:
+	sw $a1, ($a3)
+	addi $a3, $a3, 4
+	bne $a3, $a2, DrawXAxis
 	### Iterate ###
 	### K-means Cluster ##
 	
