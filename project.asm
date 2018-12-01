@@ -58,6 +58,7 @@ main:
 	li $s1, 400
 	li $s2, 0 # store character count to stop the loop
 	lw $s3, black # store the color of black
+	
 loopThroughBuffer:
 	addi $t5, $t1, 2 # store address of 2nd number
 	sb $t1, ($t2) # store number in x column
@@ -75,14 +76,24 @@ loopThroughBuffer:
 	mul $a2, $a0,$a0 # calculate total pixels
 	mul $a2, $a2, 4 # each pixel stores 4 bytes
 	add $a2, $a2, $gp # add to the $gp to mark the end
-	addi $a3, $gp, 0 # loop counter
+	addi $a3, $gp, 0 # index
+	
 # makes the screen white
 FillScreen:
 	sw $a1, ($a3) # change pixel to white
 	addiu $a3, $a3, 4 # move word by 1
 	bne $a2, $a3, FillScreen
+	
 # draws the graph lines
-DrawGraph:
+lw $a1, black # store the color black
+mul $a2,$a0, 4 # multiply the number of pixels by 4 to format the address
+mul $a2, $a2, 64 # find total length of a column
+add $a2, $a2, $gp # add length of column by the position of the graph
+move $a3, $gp # reset to index original position 
+DrawGraph: 
+	sw $a1, ($a3)
+	addi $a3, $a3, 256
+	bne $a3, $a2, DrawGraph
 	### Iterate ###
 	### K-means Cluster ##
 	
