@@ -34,6 +34,7 @@ colorVector:.align 2
 	    .space 400
 fileBuffer: .align 0
 	    .space 600 
+centroids: .space 16 # array contains the coordinates of both centroids 
 .text
 main:
 ### Read in text data ###
@@ -130,19 +131,46 @@ DrawXAxis:
 la $s1, xVector 
 la $s2, yVector
 la $s3, colorVector
-li $a2, 0 # load black color
 li $s4,0 # i = 0
 drawAllPoints:
 	lw $a0, ($s1)
 	lw $a1, ($s2)
-	li $a2, 0
+	lw $a2, ($s3)
 	jal drawPoint
-	addi $s1, $s1, 4
+	addi $s1, $s1, 4 # move to next word 
 	addi $s2, $s2, 4
+	addi $s3, $s3, 4
 	addi $s4, $s4, 1
 	bne $s4, 100, drawAllPoints
-### Iterate ###
+### K-means Clustering ###
+la $s1, xVector 
+la $s2, yVector
+la $s3, colorVector
+la $s4, centroids
+lw $s5, blue
+lw $s6, red
 # take the first two points as the centroids 
+sw $s1, ($s4) # store 1st centroid
+sw $s2, 4($s4)
+sw $s5, ($s3) # mark point as blue
+addi $t1, $s1, 4 # get second point
+addi $t2, $s2, 4
+sw $t1, 8($s4) # store 2nd centroid 
+sw $t2, 12($s4)
+sw $s6, 4($s3)
+# print the newly colored points
+lw $a0, ($s1)
+lw $a1, ($s2)
+lw $a2, ($s3)
+jal drawPoint
+lw $a0, 4($s1)
+lw $a1, 4($s2)
+lw $a2, 4($s3)
+jal drawPoint
+# pause the program for .1 seconds so visualization can be easily seen
+li $v0, 32
+li $a0, 100 
+syscall
 ### K-means Cluster ##
 # exit the program 
 exit:
