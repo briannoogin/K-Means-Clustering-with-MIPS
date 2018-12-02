@@ -32,8 +32,8 @@ yVector:.align 2
 	.space 400 
 colorVector:.align 2
 	    .space 400
-fileBuffer: .align 2
-	    .space 400 
+fileBuffer: .align 0
+	    .space 600 
 .text
 main:
 ### Read in text data ###
@@ -61,16 +61,28 @@ la $t1, fileBuffer # store address of the file buffer
 la $t2, xVector # store address of 1st column of table
 la $t3, yVector # store address of 2nd column of table
 la $t4, colorVector # stores address of 3rd column of table
-li $s1, 400
+li $s1, 600
 li $s2, 0 # store character count to stop the loop
 lw $s3, black # store the color of black
 	
 loopThroughBuffer:
-	addi $t5, $t1, 2 # store address of 2nd number in the row
-	lb $t6, ($t1) # load number from the buffer
-	lb $t7, ($t5)
+	addi $t5, $t1, 3 # store address of 2nd number in the row
+	
+	lb $t6, ($t1) # load half the number from the buffer
+	lb $t7, ($t5) 
 	addi $t6,$t6,-48 # converts ascii to number
 	addi $t7,$t7,-48
+	
+	lb $t8, 1($t1) # load the 2nd half of the number from the buffer
+	lb $t9, 1($t5)
+	addi $t8,$t8,-48 # converts ascii to number
+	addi $t9,$t9,-48
+	
+	mul $t6, $t6, 10 # multiply the digit by 10 to make the num the tens digit
+	mul $t7, $t7, 10
+	add $t6, $t6, $t8 # combine the tens and one digit 
+	add $t7, $t7, $t9
+	
 	sw $t6, ($t2) # store number in x column
 	sw $t7, ($t3) # store number in y column
 	sw $s3 ($t4) # store color in color column
@@ -79,8 +91,8 @@ loopThroughBuffer:
 	addi $t3, $t3, 4
 	addi $t4, $t4, 4 
 	
-	addi $t1, $t1, 4 # increment buffer by four to move to new line
-	addi $s2, $s2, 4 # increment number of characters read
+	addi $t1, $t1, 6 # increment buffer by four to move to new line
+	addi $s2, $s2, 6 # increment number of characters read
 	bne $s1, $s2, loopThroughBuffer
 	
 ### Draw in graph ###
@@ -117,20 +129,18 @@ DrawXAxis:
 ### Plot Points ###
 la $s1, xVector 
 la $s2, yVector
+la $s3, colorVector
 li $a2, 0 # load black color
-li $s3,0 # i = 0
+li $s4,0 # i = 0
 drawAllPoints:
-	#lb $a0, ($s1)
-	#lb $a1, ($s2)
-	#li $a2, 0
 	lw $a0, ($s1)
 	lw $a1, ($s2)
 	li $a2, 0
 	jal drawPoint
 	addi $s1, $s1, 4
 	addi $s2, $s2, 4
-	addi $s3, $s3, 1
-	bne $s3, 100, drawAllPoints
+	addi $s4, $s4, 1
+	bne $s4, 100, drawAllPoints
 ### Iterate ###
 # take the first two points as the centroids 
 ### K-means Cluster ##
