@@ -52,6 +52,9 @@ centroids: .space 16 # array contains the coordinates of both centroids
 # used for floating point division 
 division: .float 2.0
 guess: .float 2
+
+# used for printing out new lines
+newLine: .asciiz "\n"
 .text
 main:
 ### Read in text data ###
@@ -189,15 +192,18 @@ la $s4, centroids
 lw $s5, blue
 lw $s6, red
 
-# take the first two points as the centroids 
-sw $s1, ($s4) # store 1st centroid
-sw $s2, 4($s4)
+# take the first two points as the centroids
+lw $t3, ($s1)
+lw $t4, ($s2) 
+sw $t3, ($s4) # store 1st centroid
+sw $t4, 4($s4)
 sw $s5, ($s3) # mark point as blue
 
-addi $t1, $s1, 4 # get second point
-addi $t2, $s2, 4
-sw $t1, 8($s4) # store 2nd centroid 
-sw $t2, 12($s4)
+# get second point
+lw $t3, 4($s1)
+lw $t4, 4($s2) 
+sw $t3, 8($s4) # store 2nd centroid 
+sw $t4, 12($s4)
 sw $s6, 4($s3)
 
 # print the 1st colored point
@@ -234,19 +240,65 @@ la $s4, centroids
 lw $s5, blue
 lw $s6 red
 
-# test euclidean distance
-lw $a0, 4($s1)
-lw $a1, 4($s2)
-lw $a2, 8($s1)
-lw $a3, 8($s2)
-jal calculateEuclideanDistance
 iteration:
+	# i = 0
+	li $t0, 0 
+	loopThroughAllPoints:
+		# load the point 
+		lw $t1, ($s1)
+		lw $t2, ($s2)
+		
+		# compare the points to centroids by computing distance
+		# load point into parameters
+		move $a0, $t1
+		move $a1, $t2
+		# 1st centroid
+		# load centroid point
+		lw $a2, ($s4)
+		lw $a3, 4($s4)
+		jal calculateEuclideanDistance
+		# save output
+		mov.s $f10,$f4
+		
+		# 2nd centroid
+		# load centroid point
+		lw $a2, 8($s4)
+		lw $a3, 12($s4)
+		jal calculateEuclideanDistance
+		# save output
+		mov.s $f11,$f4 
+		
+		# compare if point is closer to the first centroid or to the second centroid 
+		c.lt.s $f10, $f11
+		# save blue if condition is true
+		movt $t3, $s5
+		# save red if condition is false
+		movf $t3, $s6
+		# store new color
+		sw $t3, ($s3)
+		
+		# draw point
+		lw $a0, ($s1)
+		lw $a1, ($s2)
+		lw $a2, ($s3)
+		jal drawPoint
+		
+		# increment to next word
+		addi $s1, $s1, 4 # xVector
+		addi $s2, $s2, 4 # yVector
+		addi $s3, $s3, 4 # colorVector
+		# i < 100
+		blt $t0, 100, loopThroughAllPoints
+		
+		
 	# pause the program for .1 seconds 
-	li $v0, 32
-	li $a0, 100 
+	#li $v0, 32
+	#li $a0, 100 
+	# iteration++
 	addi $t1,$t1, 1 
+	# iteration < 10
 	bne $t1,$t2, iteration 
-
+	
 # exit the program 
 exit:
 	li $v0, 10
@@ -313,7 +365,13 @@ calculateEuclideanDistance:
 # square root is approximated with 3 iterations of Newton's Method. 
 # Newton's method: xn+1 = .5(xn + a/xn) where a is number you want to take the square root of and x0 is the initial guess
 calculateSquareRoot:
-
+	
+	# return 0 if $a0 is 0
+	bne  $a0, 0, calc
+	mtc1 $a0, $f4 # move input to floating point register
+	cvt.s.w $f2, $f4 # convert word to single point
+	jr $ra
+	calc:
 	# initialize variables 
 	mtc1 $a0, $f2 # move input to floating point register
 	cvt.s.w $f2, $f2 # convert word to single point
@@ -326,7 +384,6 @@ calculateSquareRoot:
 	move $t1, $a0, # store a into x
 	
 	calcInitialGuess: # calculate the integer square root for a close guess
-		#l.s $f1, guess # guess is 2 for now
 		divu $t3, $a0, $t1  # a/x
 		add  $t3, $t1, $t3 	# x + a/x
 		srl $t1, $t3, 1 # x = .5(x + a/x)
@@ -348,5 +405,12 @@ calculateSquareRoot:
 	mov.s $f12, $f4
 	syscall
 	
+	# print out new line
+	# store $a0 so it does not get overwritten
+	sw $a0, ($sp)
+	li $v0, 4
+	la $a0, newLine
+	syscall
+	lw $a0, ($sp)
 	# return
 	jr $ra
