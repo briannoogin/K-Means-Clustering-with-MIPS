@@ -12,6 +12,7 @@
 # Draw the lines of the graph
 # finish k-means algorithmn 
 # Do 10 iterations of k-means
+# print output of centroids to console 
 .data
 # screen size dimensions
 displayHeight: .word 64
@@ -24,10 +25,15 @@ black: .word 0x000000 # color of default class
 # data file
 dataFile: .asciiz "data.txt"
 # 100X3 table
-xVector: .space 100
-yVector: .space 100
-colorVector: .space 100
-fileBuffer: .space 400
+# align 1 makes aligns memory to half word
+xVector:.align 2 
+	.space 400 
+yVector:.align 2 
+	.space 400 
+colorVector:.align 2
+	    .space 400
+fileBuffer: .align 2
+	    .space 400 
 .text
 main:
 ### Read in text data ###
@@ -60,14 +66,20 @@ li $s2, 0 # store character count to stop the loop
 lw $s3, black # store the color of black
 	
 loopThroughBuffer:
-	addi $t5, $t1, 2 # store address of 2nd number
-	sb $t1, ($t2) # store number in x column
-	sb $t5, ($t3) # store number in y column
-	sb $s3 ($t4) # store color in color column
-	addi $t2, $t2, 1 # increment column index by 1
-	addi $t3, $t3, 1
-	addi $t4, $t4, 4 # move color vector to next word
-	addi $t1, $t1, 4 # increment buffer by three to move to new line
+	addi $t5, $t1, 2 # store address of 2nd number in the row
+	lb $t6, ($t1) # load number from the buffer
+	lb $t7, ($t5)
+	addi $t6,$t6,-48 # converts ascii to number
+	addi $t7,$t7,-48
+	sw $t6, ($t2) # store number in x column
+	sw $t7, ($t3) # store number in y column
+	sw $s3 ($t4) # store color in color column
+	
+	addi $t2, $t2, 4 # increment column index by a word
+	addi $t3, $t3, 4
+	addi $t4, $t4, 4 
+	
+	addi $t1, $t1, 4 # increment buffer by four to move to new line
 	addi $s2, $s2, 4 # increment number of characters read
 	bne $s1, $s2, loopThroughBuffer
 	
@@ -103,10 +115,22 @@ DrawXAxis:
 	addi $a3, $a3, 4
 	bne $a3, $a2, DrawXAxis
 ### Plot Points ###
-li $a0, 2
-li $a1, 2
-li $a2, 0
-jal drawPoint
+la $s1, xVector 
+la $s2, yVector
+li $a2, 0 # load black color
+li $s3,0 # i = 0
+drawAllPoints:
+	#lb $a0, ($s1)
+	#lb $a1, ($s2)
+	#li $a2, 0
+	lw $a0, ($s1)
+	lw $a1, ($s2)
+	li $a2, 0
+	jal drawPoint
+	addi $s1, $s1, 4
+	addi $s2, $s2, 4
+	addi $s3, $s3, 1
+	bne $s3, 100, drawAllPoints
 ### Iterate ###
 # take the first two points as the centroids 
 ### K-means Cluster ##
@@ -123,9 +147,10 @@ drawPoint:
 	lw $t1, displayWidth
 	mul $t1, $t1, 4 # format pixels into address
 	mul $t1, $t1, 35 # number of pixels in the column
+	
 	add $t1, $t1, $gp # add address of the coordinate to the address of the graph 
 	mul $t2, $a1, 256 # multiply y coordinate by 256 to get the location of the y address
-	sub $t1, $t1, $t2 # offset the address to correctly match the y coordinate
+	sub $t1, $t1, $t2 # offset the address to correctly match the y coordinate 
 	mul $t2, $a0, 4 # multiply x coordinate by 4 to get the location of the x address 
 	add $t1, $t1, $t2  # add to move point right 
 	# change address to specified color 
