@@ -13,10 +13,13 @@
 # finish k-means algorithmn 
 # Do 10 iterations of k-means
 # print output of centroids to console 
+# adds tests for convergence
 .data
 # screen size dimensions
 displayHeight: .word 64
 displayWidth: .word 64
+# number of iterations for k-means
+iterations: .word 10
 # color of classes
 blue: 	.word	0x0066cc # color of 1 class
 red: .word  0xFF0000 # color of 0 class
@@ -35,8 +38,14 @@ colorVector:.align 2
 fileBuffer: .align 0
 	    .space 600 
 centroids: .space 16 # array contains the coordinates of both centroids 
+
+division: .float 2.0
+guess: .float 2
+parameter: .word 2
 .text
 main:
+lw $a0, parameter
+jal calculateSquareRoot
 ### Read in text data ###
 # open file
 li $v0, 13 
@@ -171,12 +180,19 @@ jal drawPoint
 li $v0, 32
 li $a0, 100 
 syscall
-### K-means Cluster ##
+### Iteration ###
+li $t1, 0 # index i = 0
+lw $t2, iterations
+iteration:
+
+	addi $t1,$t1, 1 
+	bne $t1,$t2, iteration 
+
 # exit the program 
 exit:
 	li $v0, 10
 	syscall
-# input $a0: x coordinate, $a1: y coordinate, $a2: color of point
+# input: $a0: x coordinate, $a1: y coordinate, $a2: color of point
 # assumes that the coordinates are within the boundaries of the graph 
 # output: none
 drawPoint:
@@ -198,4 +214,28 @@ drawPoint:
 # input: $a0: x of first data point, $a1: y of first data point, $a2: x of second data point, $a3: y of second data point 
 # output: $v0: returns floating point and represents distance between two points
 calculateEuclideanDistance:
+	jr $ra
+# input: $a0: integer number
+# output: $f4: returns the resulting floating square root of the number
+# square root is approximated with 3 iterations of Newton's Method. 
+# Newton's method: xn+1 = .5(xn + a/xn) where a is number you want to take the square root of and x0 is the initial guess
+calculateSquareRoot:
+	mtc1 $a0, $f2 # move input to floating point register
+	cvt.s.w $f2, $f2 # convert word to single point
+	li $t8, 0 # num iterations = 0
+	li $t9, 5
+	l.s $f3, division # used for division 
+	calcInitialGuess: # calculate the integer square root for a close guess
+		#sll $t1, $t2, $
+		l.s $f1, guess # guess is 2 for now
+	approximate:
+		div.s $f4, $f2, $f1 # a/xn
+		add.s $f4, $f1, $f4 # xn + a/xn
+		div.s $f4, $f4, $f3 # .5(xn + a/xn)
+		addi $t8, $t8, 1
+		bne $t8, $t9, approximate
+	# print out the value
+	li $v0, 2
+	mov.s $f12, $f4
+	syscall
 	jr $ra
