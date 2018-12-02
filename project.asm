@@ -14,8 +14,8 @@
 # Do 10 iterations of k-means
 # print output of centroids to console 
 # adds tests for convergence
-.data
 
+.data
 # screen size dimensions
 displayHeight: .word 64
 displayWidth: .word 64
@@ -34,13 +34,17 @@ dataFile: .asciiz "data.txt"
 
 # 100X3 table
 # align 2 makes aligns memory to word
-xVector:.align 2 
+xVector:
+	.align 2 
 	.space 400 
-yVector:.align 2 
+yVector:
+	.align 2 
 	.space 400 
-colorVector:.align 2
+colorVector:
+	    .align 2
 	    .space 400
-fileBuffer: .align 0
+fileBuffer: 
+	    .align 0
 	    .space 600 
 	    
 centroids: .space 16 # array contains the coordinates of both centroids 
@@ -196,7 +200,7 @@ sw $t1, 8($s4) # store 2nd centroid
 sw $t2, 12($s4)
 sw $s6, 4($s3)
 
-# print the newly colored points
+# print the 1st colored point
 lw $a0, ($s1)
 lw $a1, ($s2)
 lw $a2, ($s3)
@@ -207,6 +211,7 @@ li $v0, 32
 li $a0, 100 
 syscall
 
+# print the 2nd point
 lw $a0, 4($s1)
 lw $a1, 4($s2)
 lw $a2, 4($s3)
@@ -218,10 +223,24 @@ li $a0, 100
 syscall
 
 ### Iteration ###
+
+# initialize variables 
 li $t1, 0 # index i = 0
 lw $t2, iterations
+la $s1, xVector
+la $s2, yVector
+la $s3, colorVector
+la $s4, centroids
+lw $s5, blue
+lw $s6 red
+
+# test euclidean distance
+lw $a0, 4($s1)
+lw $a1, 4($s2)
+lw $a2, 8($s1)
+lw $a3, 8($s2)
+jal calculateEuclideanDistance
 iteration:
-	
 	# pause the program for .1 seconds 
 	li $v0, 32
 	li $a0, 100 
@@ -232,7 +251,9 @@ iteration:
 exit:
 	li $v0, 10
 	syscall
-# input: $a0: x coordinate, $a1: y coordinate, $a2: color of point
+# input: $a0: x coordinate, integer
+# 	 $a1: y coordinate, integer
+#	 $a2: color of point, integer
 # assumes that the coordinates are within the boundaries of the graph 
 # output: none
 drawPoint:
@@ -250,27 +271,56 @@ drawPoint:
 	
 	# change address to specified color 
 	sw $a2,($t1)
+	
+	# return to caller
 	jr $ra
 	 
-# input: $a0: x of first data point, $a1: y of first data point, $a2: x of second data point, $a3: y of second data point 
-# output: $v0: returns floating point and represents distance between two points
+# input: $a0: x of first data point, integer
+#	 $a1: y of first data point, integer
+#	 $a2: x of second data point, integer
+#        $a3: y of second data point, integer
+# output: $f4: returns floating point and represents distance between two points
 # distance formula = ((x2-x1)^2 + (y2-y1)^2)^.5
 calculateEuclideanDistance:
+
 	# x2 - x1
-	#add $v0, $a0, $a2
-	# 
-	jr $ra
+	sub $v0, $a2, $a0
+	
+	# y2 - y1
+	sub $v1, $a3, $a1 
+	
+	# square both values
+	mul $v0, $v0, $v0
+	mul $v1, $v1, $v1
+	
+	# add both squared values and pass it to calculate square root function
+	add $a0, $v0, $v1
+	
+	# store $ra in stack before function call
+	sw $ra, 4($sp)
+	
+	# call function 
+	jal calculateSquareRoot
+	
+	# pop off the stack
+	lw $ra, 4($sp)
+	
+	# return
+	jr $ra 
+	
 # input: $a0: integer number
 # output: $f4: returns the resulting floating square root of the number
 # square root is approximated with 3 iterations of Newton's Method. 
 # Newton's method: xn+1 = .5(xn + a/xn) where a is number you want to take the square root of and x0 is the initial guess
 calculateSquareRoot:
+
 	# initialize variables 
 	mtc1 $a0, $f2 # move input to floating point register
 	cvt.s.w $f2, $f2 # convert word to single point
-	li $t8, 0 # num iterations = 0
-	li $t9, 5
 	l.s $f3, division # used for division 
+	
+	li $t8, 0 # num iterations = 0
+	li $t9, 5 # max num of iterations for newtons method
 	li $t0, 0 # i = 0
 	srl $t2, $a0, 1
 	move $t1, $a0, # store a into x
@@ -280,7 +330,7 @@ calculateSquareRoot:
 		divu $t3, $a0, $t1  # a/x
 		add  $t3, $t1, $t3 	# x + a/x
 		srl $t1, $t3, 1 # x = .5(x + a/x)
-		addi $t0, $t0,1
+		addi $t0, $t0,1 # i++
 		blt $t0, $t2, calcInitialGuess # i < a/2
 		
 	mtc1 $t1,$f1 # move x to floating point register
@@ -291,9 +341,12 @@ calculateSquareRoot:
 		add.s $f4, $f1, $f4 # xn + a/xn
 		div.s $f4, $f4, $f3 # .5(xn + a/xn)
 		addi $t8, $t8, 1
-		bne $t8, $t9, approximate
+		blt $t8, $t9, approximate # iterations < 5
+		
 	# print out the value
 	li $v0, 2
 	mov.s $f12, $f4
 	syscall
+	
+	# return
 	jr $ra
