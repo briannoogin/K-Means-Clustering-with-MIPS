@@ -24,6 +24,7 @@ displayWidth: .word 64
 # number of iterations for k-means
 iterations: .word 5
 iterationText: .asciiz "Iteration "
+
 # color of classes
 blue: 	.word	0x0000FF # color of 1 class
 red: .word  0xFF0000 # color of 0 class
@@ -47,15 +48,19 @@ colorVector:
 fileBuffer: 
 	    .align 0
 	    .space 600 
-	    
+# centroid data    
 centroids: .space 16 # array contains the coordinates of both centroids 
+blueCentroidText: .asciiz "Blue Centroid is located: "
+redCentroidText: .asciiz "Red Centroid is located: "
 
 # used for floating point division 
 division: .float 2.0
-guess: .float 2
 
 # used for printing out new lines
 newLine: .asciiz "\n"
+
+# used to print spaces
+comma: .asciiz "," 
 .text
 main:
 ### Read in text data ###
@@ -86,7 +91,11 @@ la $t4, colorVector # stores address of 3rd column of table
 li $s1, 600
 li $s2, 0 # store character count to stop the loop
 lw $s3, black # store the color of black
-	
+
+# file is assumed to be this structure: Two digits, space, two digits, new line
+# ex:
+# 04 34 
+# 11 03
 loopThroughBuffer:
 	addi $t5, $t1, 3 # store address of 2nd number in the row
 	
@@ -252,7 +261,7 @@ iteration:
 	
 	# print number
 	li $v0, 1
-	move $a0, $s7
+	addi $a0, $s7, 1
 	syscall
 	
 	# print new line
@@ -270,14 +279,15 @@ iteration:
 		# load point into parameters
 		move $a0, $t1
 		move $a1, $t2
+		
 		# 1st centroid
 		# load centroid point
 		lw $a2, ($s4)
 		lw $a3, 4($s4)
 		jal calculateManhattanDistance
 		# save output
-		#mov.s $f10,$f4 # euclidean distance
 		move $t1, $v0
+		
 		# 2nd centroid
 		# load centroid point
 		lw $a2, 8($s4)
@@ -287,13 +297,11 @@ iteration:
 		move $t2, $v0
 		
 		# compare if point is closer to the first centroid or to the second centroid 
-		#c.lt.s $f11, $f10
 		sle $t6,$t1, $t2 
 		# save blue if condition is true
 		movn $t3, $s5, $t6
 		# save red if condition is false
 		movz $t3, $s6, $t6
-		#movf $t3, $s6
 		# store new color
 		sw $t3, ($s3)
 		
@@ -333,9 +341,6 @@ iteration:
 		lw $t6, ($s3)
 		bne $t6, 0x0000FF, incrementBlues
 		
-		# increment the count
-		addi $t7, $t7, 1
-		
 		# load the point
 		lw $t1, ($s1)
 		lw $t2, ($s2)
@@ -343,6 +348,9 @@ iteration:
 		# check if either values are -528, which are invalid values
 		beq $t1, -528, incrementBlues
 		beq $t2, -528, incrementBlues
+		
+		# increment the count
+		addi $t7, $t7, 1
 		
 		# increase the running total 
 		add $t8, $t8, $t1
@@ -365,6 +373,32 @@ iteration:
 	sw $t8, ($s4)
 	sw $t9, 4($s4)
 	
+	# print out centroid text
+	li $v0, 4
+	la $a0, blueCentroidText
+	syscall
+	
+	# print out first centroid coordinate
+	li $v0, 1
+	move $a0, $t8
+	syscall
+	
+	# print out comma
+	li $v0, 4
+	la $a0, comma
+	syscall
+	
+	# print out second centroid coordinate
+	li $v0, 1
+	move $a0, $t9
+	syscall
+	
+	# print new line
+	# print out centroid text
+	li $v0, 4
+	la $a0, newLine
+	syscall
+	
 	# reset count for reds
 	li $t7, 0
 	li $s5, 0
@@ -384,9 +418,6 @@ iteration:
 		lw $t6, ($s3)
 		bne $t6, 0xFF0000, incrementReds
 		
-		# increment the count
-		addi $t7, $t7, 1
-		
 		# load the point
 		lw $t1, ($s1)
 		lw $t2, ($s2)
@@ -394,6 +425,9 @@ iteration:
 		# check if either values are -528, which are invalid values
 		beq $t1, -528, incrementReds
 		beq $t2, -528, incrementReds
+		
+		# increment the count
+		addi $t7, $t7, 1
 	
 		# increase the running total 
 		add $t8, $t8, $t1
@@ -415,6 +449,32 @@ iteration:
 	# store new centroid
 	sw $t8, 8($s4)
 	sw $t9, 12($s4)
+	
+	# print out centroid text
+	li $v0, 4
+	la $a0, redCentroidText
+	syscall
+	
+	# print out first centroid coordinate
+	li $v0, 1
+	move $a0, $t8
+	syscall
+	
+	# print out comma
+	li $v0, 4
+	la $a0, comma
+	syscall
+	
+	# print out second centroid coordinate
+	li $v0, 1
+	move $a0, $t9
+	syscall
+	
+	# print new line
+	# print out centroid text
+	li $v0, 4
+	la $a0, newLine
+	syscall
 	
 	# iteration++
 	addi $s7,$s7, 1 
