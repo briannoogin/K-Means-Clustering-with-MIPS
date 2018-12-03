@@ -22,8 +22,8 @@ displayHeight: .word 64
 displayWidth: .word 64
 
 # number of iterations for k-means
-iterations: .word 10
-iterationText: .asciiz "Iteration"
+iterations: .word 5
+iterationText: .asciiz "Iteration "
 # color of classes
 blue: 	.word	0x0000FF # color of 1 class
 red: .word  0xFF0000 # color of 0 class
@@ -37,7 +37,7 @@ dataFile: .asciiz "data.txt"
 # align 2 makes aligns memory to word
 xVector:
 	.align 2 
-	.space 400 
+	.space 400
 yVector:
 	.align 2 
 	.space 400 
@@ -163,6 +163,7 @@ DrawXAxis:
 	# move one pixel right 
 	addi $a3, $a3, 4
 	blt $a3, $a2, DrawXAxis
+	
 ### Plot Points ###
 la $s1, xVector 
 la $s2, yVector
@@ -230,6 +231,7 @@ li $a0, 100
 syscall
 
 ### Iteration ###
+li $s7, 0 # current iteration = 0
 iteration:
 	# initialize variables 
 	lw $t2, iterations
@@ -239,9 +241,26 @@ iteration:
 	la $s4, centroids
 	lw $s5, blue
 	lw $s6 red
-	li $s7, 0 # index i = 0
-	# i = 0
+	# index for points = 0
 	li $t0, 0 
+	
+	# print current iteration 
+	# print iteration text
+	li $v0, 4
+	la $a0, iterationText
+	syscall
+	
+	# print number
+	li $v0, 1
+	move $a0, $s7
+	syscall
+	
+	# print new line
+	li $v0, 4
+	la $a0, newLine
+	syscall
+	
+	# loop through all the points to calculate distance 
 	loopThroughAllPoints:
 		# load the point 
 		lw $t1, ($s1)
@@ -293,9 +312,9 @@ iteration:
 		addi $s1, $s1, 4 # xVector
 		addi $s2, $s2, 4 # yVector
 		addi $s3, $s3, 4 # colorVector
-		# i++
+		# index++
 		addi $t0, $t0, 1
-		# i < 100
+		# inex < 100
 		blt $t0, 100, loopThroughAllPoints
 		
 	computeNewCentroids:
@@ -320,6 +339,10 @@ iteration:
 		# load the point
 		lw $t1, ($s1)
 		lw $t2, ($s2)
+		
+		# check if either values are -528, which are invalid values
+		beq $t1, -528, incrementBlues
+		beq $t2, -528, incrementBlues
 		
 		# increase the running total 
 		add $t8, $t8, $t1
@@ -368,6 +391,10 @@ iteration:
 		lw $t1, ($s1)
 		lw $t2, ($s2)
 		
+		# check if either values are -528, which are invalid values
+		beq $t1, -528, incrementReds
+		beq $t2, -528, incrementReds
+	
 		# increase the running total 
 		add $t8, $t8, $t1
 		add $t9, $t9, $t2
@@ -391,8 +418,8 @@ iteration:
 	
 	# iteration++
 	addi $s7,$s7, 1 
-	#iteration < 10
-	blt $s7,10, iteration 
+	#iteration < 5
+	blt $s7,5, iteration 
 	
 # exit the program 
 exit:
