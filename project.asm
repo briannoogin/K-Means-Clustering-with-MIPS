@@ -7,14 +7,6 @@
 #	Display Width: 512					     #
 #	Display Height: 512					     #
 #	Base Address for Display: 0x10008000 ($gp)	
-# TODO:
-# Enter in the data in a two-column table, try to read in from file
-# Draw the lines of the graph
-# finish k-means algorithmn 
-# Do 10 iterations of k-means
-# print output of centroids to console 
-# adds tests for convergence
-# add tests for correctly formatted data
 
 .data
 # screen size dimensions
