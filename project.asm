@@ -23,9 +23,9 @@ displayWidth: .word 64
 
 # number of iterations for k-means
 iterations: .word 10
-
+iterationText: .asciiz "Iteration"
 # color of classes
-blue: 	.word	0x0066cc # color of 1 class
+blue: 	.word	0x0000FF # color of 1 class
 red: .word  0xFF0000 # color of 0 class
 displayColor:.word 0xFFFFFF # white 
 black: .word 0x000000 # color of default class
@@ -230,18 +230,16 @@ li $a0, 100
 syscall
 
 ### Iteration ###
-
-# initialize variables 
-li $t1, 0 # index i = 0
-lw $t2, iterations
-la $s1, xVector
-la $s2, yVector
-la $s3, colorVector
-la $s4, centroids
-lw $s5, blue
-lw $s6 red
-
 iteration:
+	# initialize variables 
+	lw $t2, iterations
+	la $s1, xVector
+	la $s2, yVector
+	la $s3, colorVector
+	la $s4, centroids
+	lw $s5, blue
+	lw $s6 red
+	li $s7, 0 # index i = 0
 	# i = 0
 	li $t0, 0 
 	loopThroughAllPoints:
@@ -286,10 +284,10 @@ iteration:
 		lw $a2, ($s3)
 		jal drawPoint
 		
-		# pause the program for .5 seconds 
-		#li $v0, 32
-		#li $a0, 500
-		#syscall
+		# pause the program for .1 seconds 
+		li $v0, 32
+		li $a0, 100
+		syscall
 		
 		# increment to next word
 		addi $s1, $s1, 4 # xVector
@@ -300,11 +298,101 @@ iteration:
 		# i < 100
 		blt $t0, 100, loopThroughAllPoints
 		
+	computeNewCentroids:
+	# go back to original address 
+	la $s1, xVector
+	la $s2, yVector
+	la $s3, colorVector
+	la $s4, centroids
+	li $s5, 0 # i = 0
+	li $t7, 0 # number of points in that specific color group
+	li $t8, 0 # running total for x
+	li $t9, 0 # running total for y
+	# compute new centroid for blue
+	loopBlues:
+		# only look for blues
+		lw $t6, ($s3)
+		bne $t6, 0x0000FF, incrementBlues
 		
+		# increment the count
+		addi $t7, $t7, 1
+		
+		# load the point
+		lw $t1, ($s1)
+		lw $t2, ($s2)
+		
+		# increase the running total 
+		add $t8, $t8, $t1
+		add $t9, $t9, $t2
+	incrementBlues:
+		# increment the vectors to next word
+		addi $s1, $s1, 4
+		addi $s2, $s2, 4
+		addi $s3, $s3, 4
+		# i++
+		addi $s5, $s5, 1
+		# i < 100
+		blt $s5, 100, loopBlues 
+	
+	# calculate average
+	divu $t8, $t8, $t7
+	divu $t9, $t9, $t7
+	
+	# store new centroid
+	sw $t8, ($s4)
+	sw $t9, 4($s4)
+	
+	# reset count for reds
+	li $t7, 0
+	li $s5, 0
+	
+	# reset running total for reds
+	li $t8, 0 
+	li $t9, 0
+	
+	# go back to original address 
+	la $s1, xVector
+	la $s2, yVector
+	la $s3, colorVector
+	
+	# compute new centroid for red
+	loopReds:
+		# only look for reds
+		lw $t6, ($s3)
+		bne $t6, 0xFF0000, incrementReds
+		
+		# increment the count
+		addi $t7, $t7, 1
+		
+		# load the point
+		lw $t1, ($s1)
+		lw $t2, ($s2)
+		
+		# increase the running total 
+		add $t8, $t8, $t1
+		add $t9, $t9, $t2
+	incrementReds:
+		# increment the vectors to next word
+		addi $s1, $s1, 4
+		addi $s2, $s2, 4
+		addi $s3, $s3, 4
+		# i++
+		addi $s5, $s5, 1
+		# i < 100
+		blt $s5, 100, loopReds 
+	
+	# calculate average
+	divu $t8, $t8, $t7
+	divu $t9, $t9, $t7
+	
+	# store new centroid
+	sw $t8, 8($s4)
+	sw $t9, 12($s4)
+	
 	# iteration++
-	addi $t1,$t1, 1 
-	# iteration < 10
-	#bne $t1,$t2, iteration 
+	addi $s7,$s7, 1 
+	#iteration < 10
+	blt $s7,10, iteration 
 	
 # exit the program 
 exit:
