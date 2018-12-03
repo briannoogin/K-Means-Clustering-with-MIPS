@@ -271,11 +271,11 @@ iteration:
 		
 		# compare if point is closer to the first centroid or to the second centroid 
 		#c.lt.s $f11, $f10
-		sle $t0,$t1, $t2 
+		sle $t6,$t1, $t2 
 		# save blue if condition is true
-		movn $t3, $s5, $t0
+		movn $t3, $s5, $t6
 		# save red if condition is false
-		movz $t3, $s6, $t0
+		movz $t3, $s6, $t6
 		#movf $t3, $s6
 		# store new color
 		sw $t3, ($s3)
@@ -295,6 +295,8 @@ iteration:
 		addi $s1, $s1, 4 # xVector
 		addi $s2, $s2, 4 # yVector
 		addi $s3, $s3, 4 # colorVector
+		# i++
+		addi $t0, $t0, 1
 		# i < 100
 		blt $t0, 100, loopThroughAllPoints
 		
