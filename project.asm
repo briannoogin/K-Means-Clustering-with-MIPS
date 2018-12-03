@@ -14,6 +14,7 @@
 # Do 10 iterations of k-means
 # print output of centroids to console 
 # adds tests for convergence
+# add tests for correctly formatted data
 
 .data
 # screen size dimensions
@@ -256,24 +257,26 @@ iteration:
 		# load centroid point
 		lw $a2, ($s4)
 		lw $a3, 4($s4)
-		jal calculateEuclideanDistance
+		jal calculateManhattanDistance
 		# save output
-		mov.s $f10,$f4
-		
+		#mov.s $f10,$f4 # euclidean distance
+		move $t1, $v0
 		# 2nd centroid
 		# load centroid point
 		lw $a2, 8($s4)
 		lw $a3, 12($s4)
-		jal calculateEuclideanDistance
+		jal calculateManhattanDistance
 		# save output
-		mov.s $f11,$f4 
+		move $t2, $v0
 		
 		# compare if point is closer to the first centroid or to the second centroid 
-		c.lt.s $f10, $f11
+		#c.lt.s $f11, $f10
+		sle $t0,$t1, $t2 
 		# save blue if condition is true
-		movt $t3, $s5
+		movn $t3, $s5, $t0
 		# save red if condition is false
-		movf $t3, $s6
+		movz $t3, $s6, $t0
+		#movf $t3, $s6
 		# store new color
 		sw $t3, ($s3)
 		
@@ -283,6 +286,11 @@ iteration:
 		lw $a2, ($s3)
 		jal drawPoint
 		
+		# pause the program for .5 seconds 
+		#li $v0, 32
+		#li $a0, 500
+		#syscall
+		
 		# increment to next word
 		addi $s1, $s1, 4 # xVector
 		addi $s2, $s2, 4 # yVector
@@ -291,13 +299,10 @@ iteration:
 		blt $t0, 100, loopThroughAllPoints
 		
 		
-	# pause the program for .1 seconds 
-	#li $v0, 32
-	#li $a0, 100 
 	# iteration++
 	addi $t1,$t1, 1 
 	# iteration < 10
-	bne $t1,$t2, iteration 
+	#bne $t1,$t2, iteration 
 	
 # exit the program 
 exit:
@@ -326,13 +331,36 @@ drawPoint:
 	
 	# return to caller
 	jr $ra
-	 
+
+	 	 
+# input: $a0: x of first data point, integer
+#	 $a1: y of first data point, integer
+#	 $a2: x of second data point, integer
+#        $a3: y of second data point, integer
+# output: $v0: integer and represents manhattan distance 
+# Manhattan distance formula = |x2-x1| + |y2-y1|
+calculateManhattanDistance:
+
+	# x2 - x1 
+	sub $v0, $a2, $a0
+	
+	# y2 - y1
+	sub $v1, $a3, $a1
+	
+	# take the absolute value
+	abs $v0, $v0
+	abs $v1, $v1
+	
+	# add the differences
+	add $v0, $v0, $v1
+	jr $ra
+	
 # input: $a0: x of first data point, integer
 #	 $a1: y of first data point, integer
 #	 $a2: x of second data point, integer
 #        $a3: y of second data point, integer
 # output: $f4: returns floating point and represents distance between two points
-# distance formula = ((x2-x1)^2 + (y2-y1)^2)^.5
+# euclidean distance formula = ((x2-x1)^2 + (y2-y1)^2)^.5
 calculateEuclideanDistance:
 
 	# x2 - x1
